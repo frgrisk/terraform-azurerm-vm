@@ -53,6 +53,14 @@ resource "azurerm_linux_virtual_machine" "instance" {
     azurerm_network_interface.instance.id
   ]
 
+  dynamic "identity" {
+    for_each = var.identity != null ? [1] : []
+    content {
+      type         = var.identity.type
+      identity_ids = var.identity.identity_ids
+    }
+  }
+
   tags = local.instance_tags
 
   custom_data = base64encode(
