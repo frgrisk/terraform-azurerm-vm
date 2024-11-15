@@ -56,7 +56,7 @@ resource "azurerm_linux_virtual_machine" "instance" {
   dynamic "identity" {
     for_each = var.identity != null ? [1] : []
     content {
-      type = var.identity.type
+      type         = var.identity.type
       identity_ids = var.identity.identity_ids
     }
   }

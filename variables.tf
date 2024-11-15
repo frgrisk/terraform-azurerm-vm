@@ -107,7 +107,7 @@ variable "admin_username" {
 variable "identity" {
   description = "Specifies the identity block for the instance."
   type = object({
-    type = string
+    type         = string
     identity_ids = optional(list(string))
   })
   default = null
