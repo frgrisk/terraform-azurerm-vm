@@ -13,3 +13,7 @@ output "hostname" {
 output "instance_id" {
   value = azurerm_linux_virtual_machine.instance.id
 }
+
+output "identity" {
+  value = azurerm_linux_virtual_machine.instance.identity
+}
