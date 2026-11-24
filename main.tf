@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~>1.0"
+  required_version = "~>1.3"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -12,11 +12,11 @@ locals {
   tag_name = coalesce(var.tag_name, var.hostname)
 
   volume_mounts = join("\n", [
-    for device, volume in var.additional_volumes :
+    for volume in values(var.additional_volumes) :
     templatefile(
       "${path.module}/user_data_scripts/mount_volume.sh",
       {
-        device      = device
+        device      = "/dev/disk/azure/scsi1/lun${volume.lun}"
         mount_point = volume.mount_point
       }
     )
@@ -44,6 +44,7 @@ resource "azurerm_linux_virtual_machine" "instance" {
   resource_group_name = var.resource_group_name
   location            = var.location
   size                = var.size
+  zone                = var.zone
   admin_username      = var.admin_username
 
   priority        = var.priority
@@ -113,7 +114,8 @@ resource "azurerm_managed_disk" "additional" {
   name                 = "${local.tag_name}-disk-${each.key}"
   location             = var.location
   resource_group_name  = var.resource_group_name
-  storage_account_type = "Premium_LRS"
+  zone                 = var.zone
+  storage_account_type = each.value.storage_account_type
   create_option        = "Empty"
   disk_size_gb         = each.value.size
 
@@ -121,11 +123,11 @@ resource "azurerm_managed_disk" "additional" {
 }
 
 resource "azurerm_virtual_machine_data_disk_attachment" "additional" {
-  for_each           = azurerm_managed_disk.additional
-  managed_disk_id    = each.value.id
+  for_each           = var.additional_volumes
+  managed_disk_id    = azurerm_managed_disk.additional[each.key].id
   virtual_machine_id = azurerm_linux_virtual_machine.instance.id
-  lun                = index(keys(var.additional_volumes), each.key)
-  caching            = "ReadWrite"
+  lun                = each.value.lun
+  caching            = each.value.caching
 }
 
 resource "azurerm_managed_disk" "raid_array" {
@@ -133,6 +135,7 @@ resource "azurerm_managed_disk" "raid_array" {
   name                 = "${local.tag_name}-raid-disk-${count.index}"
   location             = var.location
   resource_group_name  = var.resource_group_name
+  zone                 = var.zone
   storage_account_type = "Premium_LRS"
   create_option        = "Empty"
   disk_size_gb         = var.raid_array_size / 10

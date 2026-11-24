@@ -55,9 +55,21 @@ variable "root_volume_size" {
 }
 
 variable "additional_volumes" {
-  description = "Additional volumes to create and attach to the instance"
-  type        = map(map(string))
-  default     = {}
+  description = "Additional volumes to create and attach to the instance, keyed by a short name used in the disk name. lun must be unique and below 10 when a RAID array is used (it takes LUNs 10-19). PremiumV2_LRS needs caching None"
+  type = map(object({
+    lun                  = number
+    size                 = number
+    mount_point          = string
+    storage_account_type = optional(string, "Premium_LRS")
+    caching              = optional(string, "ReadWrite")
+  }))
+  default = {}
+}
+
+variable "zone" {
+  description = "The availability zone to pin the instance and its disks to; null leaves it non-zonal. Changing it replaces the instance"
+  type        = string
+  default     = null
 }
 
 variable "resource_group_name" {
